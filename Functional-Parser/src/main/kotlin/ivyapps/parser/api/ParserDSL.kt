@@ -1,7 +1,6 @@
 package ivyapps.parser.api
 
 import ivyapps.parser.*
-import ivyapps.parser.common.int
 import ivyapps.parser.common.number
 import ivyapps.parser.or as _or
 
@@ -13,9 +12,14 @@ class ParseScopeImpl(text: String) : ParseScope {
         get() = _leftover
 
     override fun item(): Parser<Char> = ivyapps.parser.item()
-    override fun char(c: Char): Parser<Char> = ivyapps.parser.char(c)
-    override fun string(str: String): Parser<String> = ivyapps.parser.string(str)
     override fun sats(predicate: (Char) -> Boolean): Parser<Char> = sat(predicate)
+    override fun char(c: Char): Parser<Char> = ivyapps.parser.char(c)
+
+    override fun string(str: String): Parser<String> = ivyapps.parser.string(str)
+    override fun takeWhile(predicate: (Char) -> Boolean): Parser<String> =
+        zeroOrMany(sat(predicate)).flatMap {
+            pure(it.joinToString(separator = ""))
+        }
 
     override fun <T> (Parser<T>).or(other: Parser<T>): Parser<T> = _or(other)
     override fun <T> zeroOrMany(parser: Parser<T>): Parser<List<T>> = ivyapps.parser.zeroOrMany(parser)
@@ -36,12 +40,8 @@ class ParseScopeImpl(text: String) : ParseScope {
 
     override suspend fun failure() = throw ParseError
 
-    override fun letter(): Parser<Char> = ivyapps.parser.common.letter()
-    override fun digit(): Parser<Int> = ivyapps.parser.item().flatMap {
-        if (it.isDigit()) pure(it.digitToInt()) else fail()
-    }
 
-    override fun integer(): Parser<Int> = int()
+    override fun int(): Parser<Int> = ivyapps.parser.common.int()
     override fun double(): Parser<Double> = number()
 }
 
@@ -49,9 +49,11 @@ interface ParseScope {
     val leftover: String
 
     fun item(): Parser<Char>
-    fun char(c: Char): Parser<Char>
-    fun string(str: String): Parser<String>
     fun sats(predicate: (Char) -> Boolean): Parser<Char>
+    fun char(c: Char): Parser<Char>
+
+    fun string(str: String): Parser<String>
+    fun takeWhile(predicate: (Char) -> Boolean): Parser<String>
 
     infix fun <T> Parser<T>.or(other: Parser<T>): Parser<T>
     fun <T> zeroOrMany(parser: Parser<T>): Parser<List<T>>
@@ -61,9 +63,7 @@ interface ParseScope {
     suspend fun <T> Parser<T>.bindOptional(): T?
     suspend fun failure()
 
-    fun letter(): Parser<Char>
-    fun digit(): Parser<Int>
-    fun integer(): Parser<Int>
+    fun int(): Parser<Int>
     fun double(): Parser<Double>
 }
 
@@ -83,38 +83,8 @@ suspend fun <T> parse(text: String, parser: suspend ParseScope.() -> T): ParseRe
     null
 }
 
-suspend fun <T> Parser<T>.run(text: String): ParseResult<T>? = try {
+suspend fun <T> Parser<T>.parse(text: String): ParseResult<T>? = try {
     this(text).firstOrNull()
 } catch (e: Exception) {
     null
-}
-
-
-suspend fun main() {
-    val res = commandParser().run("SET 123 \"Okay Google\"")
-
-    println(res)
-    if (res != null) {
-        println("SET \"${res.value.key}\" \"${res.value.value}\"")
-    }
-}
-
-data class Set(val key: String, val value: String)
-
-private fun commandParser(): Parser<Set> = parser {
-    string("SET").bind()
-    char(' ').bind()
-    val key = argumentParser().bind()
-    char(' ').bind()
-    val value = argumentParser().bind()
-    Set(key, value)
-}
-
-private fun argumentParser(): Parser<String> = parser {
-    char('"').bind()
-    val key = oneOrMany(sats { it != '"' }).bind()
-    char('"').bind()
-    key.joinToString(separator = "")
-} _or parser {
-    oneOrMany(sats { it != ' ' }).bind().joinToString(separator = "")
 }
