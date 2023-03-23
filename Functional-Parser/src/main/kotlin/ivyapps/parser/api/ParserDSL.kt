@@ -67,6 +67,12 @@ interface ParseScope {
     fun double(): Parser<Double>
 }
 
+
+fun <T> parser(p: suspend ParseScope.() -> T): Parser<T> = { text ->
+    val res = parse(text, p)
+    if (res != null) listOf(res) else emptyList()
+}
+
 suspend fun <T> parse(text: String, parser: suspend ParseScope.() -> T): ParseResult<T>? = try {
     val scope = ParseScopeImpl(text)
     val res = with(scope) {
@@ -77,13 +83,15 @@ suspend fun <T> parse(text: String, parser: suspend ParseScope.() -> T): ParseRe
     null
 }
 
-fun <T> parser(p: suspend ParseScope.() -> T): Parser<T> = { text ->
-    val res = parse(text, p)
-    if (res != null) listOf(res) else emptyList()
+suspend fun <T> Parser<T>.run(text: String): ParseResult<T>? = try {
+    this(text).firstOrNull()
+} catch (e: Exception) {
+    null
 }
 
+
 suspend fun main() {
-    val res = parse("SET \"this is fake\" 1234", ParseScope::setCommandParser)
+    val res = commandParser().run("SET 123 \"Okay Google\"")
 
     println(res)
     if (res != null) {
@@ -93,16 +101,16 @@ suspend fun main() {
 
 data class Set(val key: String, val value: String)
 
-private suspend fun ParseScope.setCommandParser(): Set {
+private fun commandParser(): Parser<Set> = parser {
     string("SET").bind()
     char(' ').bind()
     val key = argumentParser().bind()
     char(' ').bind()
     val value = argumentParser().bind()
-    return Set(key, value)
+    Set(key, value)
 }
 
-private suspend fun argumentParser(): Parser<String> = parser {
+private fun argumentParser(): Parser<String> = parser {
     char('"').bind()
     val key = oneOrMany(sats { it != '"' }).bind()
     char('"').bind()
