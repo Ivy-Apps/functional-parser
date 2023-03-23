@@ -102,7 +102,7 @@ fun <T : Any?, R : Any?> Parser<T>.flatMap(
  * A parser that reads one character from the text left to parse.
  * Fails if the text is empty.
  */
-fun _item(): Parser<Char> = { string ->
+fun item(): Parser<Char> = { string ->
     if (string.isNotEmpty()) {
         // return the first character as value and the rest as leftover
         listOf(
@@ -121,8 +121,8 @@ fun _item(): Parser<Char> = { string ->
  * @param predicate returns whether the parsing is successful.
  * @return a parser that parses a character for a predicate.
  */
-fun _sat(predicate: (Char) -> Boolean): Parser<Char> = { string ->
-    _item().flatMap { char ->
+fun sat(predicate: (Char) -> Boolean): Parser<Char> = { string ->
+    item().flatMap { char ->
         if (predicate(char)) pure(char) else fail()
     }.invoke(string)
 }
@@ -132,13 +132,13 @@ fun _sat(predicate: (Char) -> Boolean): Parser<Char> = { string ->
  * @param c the character to parse
  * @return a parser that parses a character
  */
-fun _char(c: Char): Parser<Char> = _sat { it == c }
+fun char(c: Char): Parser<Char> = sat { it == c }
 
-fun _string(str: String): Parser<String> = { string ->
+fun string(str: String): Parser<String> = { string ->
     if (str.isEmpty()) pure("").invoke(string) else {
         // recurse
-        _char(str.first()).flatMap { c ->
-            _string(str.drop(1)).flatMap { cs ->
+        char(str.first()).flatMap { c ->
+            string(str.drop(1)).flatMap { cs ->
                 pure(c + cs)
             }
         }.invoke(string)

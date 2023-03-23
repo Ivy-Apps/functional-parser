@@ -4,7 +4,7 @@ package ivyapps.parser
  * Parses whitespace ' ' (space), '\t' tab or '\n'.
  * This operation never fails. For empty text, simple returns empty list of chars.
  */
-fun whitespace(): Parser<List<Char>> = _zeroOrMany(_sat { it.isWhitespace() })
+fun whitespace(): Parser<List<Char>> = zeroOrMany(sat { it.isWhitespace() })
 
 /**
  * Parses a thing and then removes the whitespace after it.
@@ -26,4 +26,4 @@ fun <T> token(parser: Parser<T>): Parser<T> = parser.flatMap { t ->
  * Parses a string and then remove the whitespace after it.
  * See [token].
  */
-fun symbolicToken(str: String): Parser<String> = token(_string(str))
+fun symbolicToken(str: String): Parser<String> = token(string(str))
