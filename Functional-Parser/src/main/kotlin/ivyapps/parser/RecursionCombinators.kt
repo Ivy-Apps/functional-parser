@@ -25,7 +25,7 @@ package ivyapps.parser
  * @param parser2 the second parser to apply _(Parser 2)_.
  * @return a combined OR parser: _Parser 1_ **||** _Parser 2_.
  */
-infix fun <T> Parser<T>.or(parser2: Parser<T>): Parser<T> = { text ->
+infix fun <T> Parser<T>._or(parser2: Parser<T>): Parser<T> = { text ->
     this(text).ifEmpty { parser2(text) }
 }
 
@@ -65,10 +65,10 @@ fun <T> Parser<T>.first(): Parser<T> = { text ->
 /**
  * Zero or many occurrences of a parser.
  */
-fun <T> zeroOrMany(parser: Parser<T>): Parser<List<T>> {
+fun <T> _zeroOrMany(parser: Parser<T>): Parser<List<T>> {
     fun <T> oneOrMany(parser: Parser<T>): Parser<List<T>> =
         parser.flatMap { one -> // this recursion will stop when "one" stops returning
-            zeroOrMany(parser).flatMap { zeroOrMany ->
+            _zeroOrMany(parser).flatMap { zeroOrMany ->
                 pure(listOf(one) + zeroOrMany)
             }
         }
@@ -89,9 +89,9 @@ fun <T> zeroOrMany(parser: Parser<T>): Parser<List<T>> {
 /**
  * One or many occurrences of a parser.
  */
-fun <T> oneOrMany(parser: Parser<T>): Parser<List<T>> = parser.flatMap { one ->
+fun <T> _oneOrMany(parser: Parser<T>): Parser<List<T>> = parser.flatMap { one ->
     // parsed one occurrence successfully
-    zeroOrMany(parser).flatMap { zeroOrMany ->
+    _zeroOrMany(parser).flatMap { zeroOrMany ->
         pure(listOf(one) + zeroOrMany)
     }
 }
@@ -113,7 +113,7 @@ fun <T> optional(parser: Parser<T>): Parser<T?> = { text ->
  */
 fun <T, R> Parser<T>.separatedBy(separator: Parser<R>): Parser<List<T>> {
     fun Parser<T>.oneOrManySepBy(separator: Parser<R>): Parser<List<T>> = this.flatMap { one ->
-        zeroOrMany(
+        _zeroOrMany(
             separator.flatMap {
                 this
             }

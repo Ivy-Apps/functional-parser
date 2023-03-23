@@ -21,7 +21,7 @@ data class ParseResult<out T>(
  * Parser monad which accepts text (String)
  * and returns a list of parse interpretations or [] on failure.
  */
-typealias Parser<T> = (String) -> List<ParseResult<T>>
+typealias Parser<T> = suspend (String) -> List<ParseResult<T>>
 
 // region Result builders
 /**
@@ -72,7 +72,7 @@ fun <T> fail(): Parser<T> = { emptyList() }
 fun <T : Any?, R : Any?> Parser<T>.flatMap(
     nextParser: (T) -> Parser<R>
 ): Parser<R> = { string ->
-    val res1 = this(string) // apply parser 1
+    val results = this(string) // apply parser 1
 
     /*
      * Parser 1 = "this"
@@ -91,7 +91,7 @@ fun <T : Any?, R : Any?> Parser<T>.flatMap(
      * If Parser 2 also returns multiple results they'll be flattened and returned [n*m]
      * where n = Parser 1 results and m = Parser 2 results for each n.
      */
-    res1.flatMap {
+    results.flatMap {
         // Apply Parser 2 to each successfully parsed value by Parser 1 and its leftover
         nextParser(it.value).invoke(it.leftover)
     }
@@ -102,7 +102,7 @@ fun <T : Any?, R : Any?> Parser<T>.flatMap(
  * A parser that reads one character from the text left to parse.
  * Fails if the text is empty.
  */
-fun item(): Parser<Char> = { string ->
+fun _item(): Parser<Char> = { string ->
     if (string.isNotEmpty()) {
         // return the first character as value and the rest as leftover
         listOf(
@@ -121,8 +121,8 @@ fun item(): Parser<Char> = { string ->
  * @param predicate returns whether the parsing is successful.
  * @return a parser that parses a character for a predicate.
  */
-fun sat(predicate: (Char) -> Boolean): Parser<Char> = { string ->
-    item().flatMap { char ->
+fun _sat(predicate: (Char) -> Boolean): Parser<Char> = { string ->
+    _item().flatMap { char ->
         if (predicate(char)) pure(char) else fail()
     }.invoke(string)
 }
@@ -132,13 +132,13 @@ fun sat(predicate: (Char) -> Boolean): Parser<Char> = { string ->
  * @param c the character to parse
  * @return a parser that parses a character
  */
-fun char(c: Char): Parser<Char> = sat { it == c }
+fun _char(c: Char): Parser<Char> = _sat { it == c }
 
-fun string(str: String): Parser<String> = { string ->
+fun _string(str: String): Parser<String> = { string ->
     if (str.isEmpty()) pure("").invoke(string) else {
         // recurse
-        char(str.first()).flatMap { c ->
-            string(str.drop(1)).flatMap { cs ->
+        _char(str.first()).flatMap { c ->
+            _string(str.drop(1)).flatMap { cs ->
                 pure(c + cs)
             }
         }.invoke(string)

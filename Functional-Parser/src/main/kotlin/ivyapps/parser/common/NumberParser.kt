@@ -2,12 +2,12 @@ package ivyapps.parser.common
 
 import ivyapps.parser.*
 
-fun digit(): Parser<Char> = sat { it.isDigit() }
+fun digit(): Parser<Char> = _sat { it.isDigit() }
 
 /**
  * Parses an integer number without a sign.
  */
-fun int(): Parser<Int> = oneOrMany(digit()).flatMap { digits ->
+fun _int(): Parser<Int> = _oneOrMany(digit()).flatMap { digits ->
     val number = try {
         digits.joinToString(separator = "").toInt()
     } catch (e: Exception) {
@@ -25,29 +25,29 @@ fun int(): Parser<Int> = oneOrMany(digit()).flatMap { digits ->
  * - "3." 15. _"#."_
  * - 3, 5, 8 _"#"_
  */
-fun number(): Parser<Double> {
-    fun oneOrMoreDigits(): Parser<String> = oneOrMany(digit()).flatMap { digits ->
+fun _number(): Parser<Double> {
+    fun oneOrMoreDigits(): Parser<String> = _oneOrMany(digit()).flatMap { digits ->
         pure(digits.joinToString(separator = ""))
     }
 
-    return int().flatMap { intPart ->
+    return _int().flatMap { intPart ->
         // 3.14, ###.00
-        char('.').flatMap {
+        _char('.').flatMap {
             oneOrMoreDigits().flatMap { decimalPart ->
                 pure("$intPart.$decimalPart".toDouble())
             }
         }
-    } or char('.').flatMap {
+    } _or _char('.').flatMap {
         // .5 => 0.5
         oneOrMoreDigits().flatMap { decimalPart ->
             pure("0.$decimalPart".toDouble())
         }
-    } or int().flatMap { intPart ->
+    } _or _int().flatMap { intPart ->
         // 3. => 3.0
-        char('.').flatMap {
+        _char('.').flatMap {
             pure(intPart.toDouble())
         }
-    } or int().flatMap {
+    } _or _int().flatMap {
         // 3, 5, 13
         pure(it.toDouble())
     }

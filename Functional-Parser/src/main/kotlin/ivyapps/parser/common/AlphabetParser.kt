@@ -1,6 +1,6 @@
 package ivyapps.parser.common
 
 import ivyapps.parser.Parser
-import ivyapps.parser.sat
+import ivyapps.parser._sat
 
-fun letter(): Parser<Char> = sat { it.isLetter() }
+fun _letter(): Parser<Char> = _sat { it.isLetter() }
