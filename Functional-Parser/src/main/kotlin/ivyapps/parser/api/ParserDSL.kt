@@ -25,7 +25,7 @@ class ParseScopeImpl(text: String) : ParseScope {
     override fun <T> zeroOrMany(parser: Parser<T>): Parser<List<T>> = ivyapps.parser.zeroOrMany(parser)
     override fun <T> oneOrMany(parser: Parser<T>): Parser<List<T>> = ivyapps.parser.oneOrMany(parser)
 
-    override suspend fun <T> Parser<T>.bind(): T = bindOptional() ?: failure()
+    override suspend fun <T> Parser<T>.bind(): T = bindOptional() ?: fail()
     override suspend fun <T> (Parser<T>).bindOptional(): T? {
         val results = this(leftover)
         return when (results.isEmpty()) {
@@ -38,7 +38,7 @@ class ParseScopeImpl(text: String) : ParseScope {
         }
     }
 
-    override suspend fun failure() = throw ParseError
+    override suspend fun fail(): Nothing = throw ParseError
 
 
     override fun int(): Parser<Int> = ivyapps.parser.common.int()
@@ -61,7 +61,7 @@ interface ParseScope {
 
     suspend fun <T> Parser<T>.bind(): T
     suspend fun <T> Parser<T>.bindOptional(): T?
-    suspend fun failure()
+    suspend fun fail(): Nothing
 
     fun int(): Parser<Int>
     fun double(): Parser<Double>
